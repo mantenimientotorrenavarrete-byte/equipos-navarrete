@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial de Equipos - Navarrete</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f6f9; padding: 20px; color: #333; }
+        .card { background: white; max-width: 600px; margin: 40px auto; padding: 25px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h1 { color: #0288D1; font-size: 22px; }
+        p { font-size: 16px; line-height: 1.5; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Historial de Mantenimiento</h1>
+        <p><strong>Equipo consultado:</strong> <span id="nombreEquipo" style="color: #d32f2f;">Cargando...</span></p>
+        <p>Aquí podrás visualizar el registro técnico y los mantenimientos correctivos de este equipo.</p>
+    </div>
+
+    <script>
+        // Lee el parámetro ?equipo=NOMBRE_DEL_EQUIPO enviado por el código QR
+        const urlParams = new URLSearchParams(window.location.search);
+        const equipo = urlParams.get('equipo');
+        
+        if (equipo) {
+            document.getElementById('nombreEquipo').innerText = equipo;
+        } else {
+            document.getElementById('nombreEquipo').innerText = "No se especificó ningún equipo.";
+        }
+    </script>
+</body>
+</html>
