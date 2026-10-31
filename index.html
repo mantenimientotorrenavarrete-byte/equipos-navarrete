@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,20 +8,21 @@
 <title>Historial de Equipos - Navarrete</title>
 
 <style>
+
 body{
     font-family: Arial, sans-serif;
-    background-color:#f4f6f9;
+    background:#f4f6f9;
+    margin:0;
     padding:20px;
-    color:#333;
 }
 
 .card{
     background:white;
-    max-width:800px;
-    margin:40px auto;
+    max-width:900px;
+    margin:auto;
     padding:25px;
     border-radius:10px;
-    box-shadow:0 4px 8px rgba(0,0,0,0.15);
+    box-shadow:0 4px 10px rgba(0,0,0,.1);
 }
 
 h1{
@@ -29,23 +31,43 @@ h1{
 
 h2{
     margin-top:25px;
-    color:#444;
+}
+
+.filtros{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-bottom:20px;
+}
+
+.filtros input{
+    padding:10px;
+    border:1px solid #ccc;
+    border-radius:6px;
 }
 
 .correctivo{
+    margin-top:12px;
+    padding:15px;
     border-left:5px solid #0288D1;
-    padding:12px;
-    margin-top:10px;
     background:#f8f9fa;
     border-radius:6px;
 }
 
-p{
-    margin:6px 0;
+.correctivo p{
+    margin:5px 0;
 }
+
+.contador{
+    margin-bottom:15px;
+    color:#555;
+    font-weight:bold;
+}
+
 </style>
 
 </head>
+
 <body>
 
 <div class="card">
@@ -79,6 +101,24 @@ p{
 
     <h2>Historial de Correctivos</h2>
 
+    <div class="filtros">
+
+        <input
+            type="text"
+            id="filtroPieza"
+            placeholder="Buscar por pieza o componente">
+
+        <input
+            type="text"
+            id="filtroFecha"
+            placeholder="Buscar por fecha (ej: 12/10/2020)">
+
+    </div>
+
+    <div class="contador" id="contadorResultados">
+        Mostrando 0 registros
+    </div>
+
     <div id="correctivos">
         Cargando historial...
     </div>
@@ -87,7 +127,8 @@ p{
 
 <script type="module">
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 
 import {
     getFirestore,
@@ -113,6 +154,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+let listaCorrectivos = [];
+
 const params = new URLSearchParams(window.location.search);
 const nombreEquipo = params.get("equipo");
 
@@ -121,7 +164,8 @@ if(!nombreEquipo){
     document.getElementById("nombreEquipo").innerText =
         "No se recibió el nombre del equipo";
 
-}else{
+}
+else{
 
     cargarEquipo();
 
@@ -132,7 +176,7 @@ async function cargarEquipo(){
     try{
 
         const equipoRef =
-            doc(db, "equipos", nombreEquipo);
+            doc(db,"equipos",nombreEquipo);
 
         const equipoSnap =
             await getDoc(equipoRef);
@@ -140,27 +184,34 @@ async function cargarEquipo(){
         if(!equipoSnap.exists()){
 
             document.getElementById("nombreEquipo")
-                .innerText = "Equipo no encontrado";
+                .innerText =
+                "Equipo no encontrado";
 
             return;
+
         }
 
         const equipo = equipoSnap.data();
 
         document.getElementById("nombreEquipo")
-            .innerText = equipo.nombreEquipo || "";
+            .innerText =
+            equipo.nombreEquipo || "";
 
         document.getElementById("marca")
-            .innerText = equipo.marca || "";
+            .innerText =
+            equipo.marca || "";
 
         document.getElementById("modelo")
-            .innerText = equipo.modelo || "";
+            .innerText =
+            equipo.modelo || "";
 
         document.getElementById("datoTecnico")
-            .innerText = equipo.datoTecnico || "";
+            .innerText =
+            equipo.datoTecnico || "";
 
         document.getElementById("fechaInstalacion")
-            .innerText = equipo.fechaInstalacion || "";
+            .innerText =
+            equipo.fechaInstalacion || "";
 
         cargarCorrectivos();
 
@@ -169,20 +220,11 @@ async function cargarEquipo(){
 
         console.error(error);
 
-        document.getElementById("nombreEquipo")
-            .innerText =
-                "Error al cargar datos";
-
     }
 
 }
 
 async function cargarCorrectivos(){
-
-    const contenedor =
-        document.getElementById("correctivos");
-
-    contenedor.innerHTML = "";
 
     try{
 
@@ -197,52 +239,132 @@ async function cargarCorrectivos(){
         const snapshot =
             await getDocs(correctivosRef);
 
-        if(snapshot.empty){
+        listaCorrectivos = [];
 
-            contenedor.innerHTML =
-                "<p>No existen correctivos registrados.</p>";
+        snapshot.forEach((docu)=>{
 
-            return;
-        }
-
-        snapshot.forEach((documento)=>{
-
-            const c = documento.data();
-
-            const div =
-                document.createElement("div");
-
-            div.className = "correctivo";
-
-            div.innerHTML = `
-                <p><strong>Pieza / Componente:</strong> ${c.piezaComponente || "-"}</p>
-
-                <p><strong>Actividad:</strong> ${c.actividad || "-"}</p>
-
-                <p><strong>Proveedor:</strong> ${c.proveedor || "-"}</p>
-
-                <p><strong>Marca:</strong> ${c.marca || "-"}</p>
-
-                <p><strong>Modelo:</strong> ${c.modelo || "-"}</p>
-
-                <p><strong>Fecha Correctivo:</strong> ${c.fechaCorrectivo || "-"}</p>
-            `;
-
-            contenedor.appendChild(div);
+            listaCorrectivos.push(docu.data());
 
         });
+
+        mostrarCorrectivos(listaCorrectivos);
 
     }
     catch(error){
 
         console.error(error);
 
-        contenedor.innerHTML =
-            "<p>Error al cargar los correctivos.</p>";
-
     }
 
 }
+
+function mostrarCorrectivos(lista){
+
+    const contenedor =
+        document.getElementById("correctivos");
+
+    const contador =
+        document.getElementById("contadorResultados");
+
+    contenedor.innerHTML = "";
+
+    contador.innerHTML =
+        `Mostrando ${lista.length} registro(s)`;
+
+    if(lista.length === 0){
+
+        contenedor.innerHTML =
+            "<p>No se encontraron registros.</p>";
+
+        return;
+    }
+
+    lista.forEach((c)=>{
+
+        const div =
+            document.createElement("div");
+
+        div.className =
+            "correctivo";
+
+        div.innerHTML = `
+
+            <p>
+                <strong>Pieza / Componente:</strong>
+                ${c.piezaComponente || "-"}
+            </p>
+
+            <p>
+                <strong>Actividad:</strong>
+                ${c.actividad || "-"}
+            </p>
+
+            <p>
+                <strong>Proveedor:</strong>
+                ${c.proveedor || "-"}
+            </p>
+
+            <p>
+                <strong>Marca:</strong>
+                ${c.marca || "-"}
+            </p>
+
+            <p>
+                <strong>Modelo:</strong>
+                ${c.modelo || "-"}
+            </p>
+
+            <p>
+                <strong>Fecha Correctivo:</strong>
+                ${c.fechaCorrectivo || "-"}
+            </p>
+
+        `;
+
+        contenedor.appendChild(div);
+
+    });
+
+}
+
+function aplicarFiltros(){
+
+    const pieza =
+        document.getElementById("filtroPieza")
+        .value
+        .toLowerCase();
+
+    const fecha =
+        document.getElementById("filtroFecha")
+        .value
+        .toLowerCase();
+
+    const filtrados =
+        listaCorrectivos.filter(c =>
+
+            (c.piezaComponente || "")
+                .toLowerCase()
+                .includes(pieza)
+
+            &&
+
+            (c.fechaCorrectivo || "")
+                .toLowerCase()
+                .includes(fecha)
+
+        );
+
+    mostrarCorrectivos(filtrados);
+
+}
+
+document
+.getElementById("filtroPieza")
+.addEventListener("input", aplicarFiltros);
+
+document
+.getElementById("filtroFecha")
+.addEventListener("input", aplicarFiltros);
 
 </script>
 
