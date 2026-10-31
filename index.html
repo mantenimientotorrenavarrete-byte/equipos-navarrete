@@ -1,33 +1,250 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Historial de Equipos - Navarrete</title>
-    <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f6f9; padding: 20px; color: #333; }
-        .card { background: white; max-width: 600px; margin: 40px auto; padding: 25px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        h1 { color: #0288D1; font-size: 22px; }
-        p { font-size: 16px; line-height: 1.5; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Historial de Equipos - Navarrete</title>
+
+<style>
+body{
+    font-family: Arial, sans-serif;
+    background-color:#f4f6f9;
+    padding:20px;
+    color:#333;
+}
+
+.card{
+    background:white;
+    max-width:800px;
+    margin:40px auto;
+    padding:25px;
+    border-radius:10px;
+    box-shadow:0 4px 8px rgba(0,0,0,0.15);
+}
+
+h1{
+    color:#0288D1;
+}
+
+h2{
+    margin-top:25px;
+    color:#444;
+}
+
+.correctivo{
+    border-left:5px solid #0288D1;
+    padding:12px;
+    margin-top:10px;
+    background:#f8f9fa;
+    border-radius:6px;
+}
+
+p{
+    margin:6px 0;
+}
+</style>
+
 </head>
 <body>
-    <div class="card">
-        <h1>Historial de Mantenimiento</h1>
-        <p><strong>Equipo consultado:</strong> <span id="nombreEquipo" style="color: #d32f2f;">Cargando...</span></p>
-        <p>Aquí podrás visualizar el registro técnico y los mantenimientos correctivos de este equipo.</p>
+
+<div class="card">
+
+    <h1>Historial de Mantenimiento</h1>
+
+    <p>
+        <strong>Equipo:</strong>
+        <span id="nombreEquipo">Cargando...</span>
+    </p>
+
+    <p>
+        <strong>Marca:</strong>
+        <span id="marca"></span>
+    </p>
+
+    <p>
+        <strong>Modelo:</strong>
+        <span id="modelo"></span>
+    </p>
+
+    <p>
+        <strong>Dato Técnico:</strong>
+        <span id="datoTecnico"></span>
+    </p>
+
+    <p>
+        <strong>Fecha Instalación:</strong>
+        <span id="fechaInstalacion"></span>
+    </p>
+
+    <h2>Historial de Correctivos</h2>
+
+    <div id="correctivos">
+        Cargando historial...
     </div>
 
-    <script>
-        // Lee el parámetro ?equipo=NOMBRE_DEL_EQUIPO enviado por el código QR
-        const urlParams = new URLSearchParams(window.location.search);
-        const equipo = urlParams.get('equipo');
-        
-        if (equipo) {
-            document.getElementById('nombreEquipo').innerText = equipo;
-        } else {
-            document.getElementById('nombreEquipo').innerText = "No se especificó ningún equipo.";
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+import {
+    getFirestore,
+    doc,
+    getDoc,
+    collection,
+    getDocs
+}
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+
+    apiKey: "AIzaSyC68zo8uHqvSZv6oi7MHHaU-9WvZPddl60",
+
+    authDomain: "equiposnavarrete.firebaseapp.com",
+
+    projectId: "equiposnavarrete",
+
+    storageBucket: "equiposnavarrete.firebasestorage.app"
+
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const params = new URLSearchParams(window.location.search);
+const nombreEquipo = params.get("equipo");
+
+if(!nombreEquipo){
+
+    document.getElementById("nombreEquipo").innerText =
+        "No se recibió el nombre del equipo";
+
+}else{
+
+    cargarEquipo();
+
+}
+
+async function cargarEquipo(){
+
+    try{
+
+        const equipoRef =
+            doc(db, "equipos", nombreEquipo);
+
+        const equipoSnap =
+            await getDoc(equipoRef);
+
+        if(!equipoSnap.exists()){
+
+            document.getElementById("nombreEquipo")
+                .innerText = "Equipo no encontrado";
+
+            return;
         }
-    </script>
+
+        const equipo = equipoSnap.data();
+
+        document.getElementById("nombreEquipo")
+            .innerText = equipo.nombreEquipo || "";
+
+        document.getElementById("marca")
+            .innerText = equipo.marca || "";
+
+        document.getElementById("modelo")
+            .innerText = equipo.modelo || "";
+
+        document.getElementById("datoTecnico")
+            .innerText = equipo.datoTecnico || "";
+
+        document.getElementById("fechaInstalacion")
+            .innerText = equipo.fechaInstalacion || "";
+
+        cargarCorrectivos();
+
+    }
+    catch(error){
+
+        console.error(error);
+
+        document.getElementById("nombreEquipo")
+            .innerText =
+                "Error al cargar datos";
+
+    }
+
+}
+
+async function cargarCorrectivos(){
+
+    const contenedor =
+        document.getElementById("correctivos");
+
+    contenedor.innerHTML = "";
+
+    try{
+
+        const correctivosRef =
+            collection(
+                db,
+                "equipos",
+                nombreEquipo,
+                "correctivos"
+            );
+
+        const snapshot =
+            await getDocs(correctivosRef);
+
+        if(snapshot.empty){
+
+            contenedor.innerHTML =
+                "<p>No existen correctivos registrados.</p>";
+
+            return;
+        }
+
+        snapshot.forEach((documento)=>{
+
+            const c = documento.data();
+
+            const div =
+                document.createElement("div");
+
+            div.className = "correctivo";
+
+            div.innerHTML = `
+                <p><strong>Pieza / Componente:</strong> ${c.piezaComponente || "-"}</p>
+
+                <p><strong>Actividad:</strong> ${c.actividad || "-"}</p>
+
+                <p><strong>Proveedor:</strong> ${c.proveedor || "-"}</p>
+
+                <p><strong>Marca:</strong> ${c.marca || "-"}</p>
+
+                <p><strong>Modelo:</strong> ${c.modelo || "-"}</p>
+
+                <p><strong>Fecha Correctivo:</strong> ${c.fechaCorrectivo || "-"}</p>
+            `;
+
+            contenedor.appendChild(div);
+
+        });
+
+    }
+    catch(error){
+
+        console.error(error);
+
+        contenedor.innerHTML =
+            "<p>Error al cargar los correctivos.</p>";
+
+    }
+
+}
+
+</script>
+
 </body>
 </html>
