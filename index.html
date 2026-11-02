@@ -7,6 +7,9 @@
 
 <title>Historial de Equipos - Navarrete</title>
 
+<!-- Importar jsPDF para generar los PDF en el navegador -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 <style>
 
 body{
@@ -37,13 +40,29 @@ h2{
     display:grid;
     grid-template-columns:1fr 1fr;
     gap:10px;
-    margin-bottom:20px;
+    margin-bottom:15px;
 }
 
 .filtros input{
     padding:10px;
     border:1px solid #ccc;
     border-radius:6px;
+}
+
+.btn-pdf {
+    background-color: #0288D1;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.btn-pdf:hover {
+    background-color: #026ca8;
 }
 
 .correctivo{
@@ -111,9 +130,11 @@ h2{
         <input
             type="text"
             id="filtroFecha"
-            placeholder="Buscar por fecha (ej: 12/10/2020)">
+            placeholder="Buscar por fecha (ej: 2020 o 10/2020)">
 
     </div>
+
+    <button class="btn-pdf" id="btnExportarPDF">Exportar Filtrados a PDF</button>
 
     <div class="contador" id="contadorResultados">
         Mostrando 0 registros
@@ -155,6 +176,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 let listaCorrectivos = [];
+let listaFiltradaActual = []; // Variable para almacenar los registros filtrados actuales
 
 const params = new URLSearchParams(window.location.search);
 const nombreEquipo = params.get("equipo");
@@ -247,7 +269,14 @@ async function cargarCorrectivos(){
 
         });
 
-        mostrarCorrectivos(listaCorrectivos);
+        // Ordenar por fecha descendente si es posible
+        listaCorrectivos.sort((a, b) => {
+            const fA = a.fechaCorrectivo || "";
+            const fB = b.fechaCorrectivo || "";
+            return fB.localeCompare(fA);
+        });
+
+        aplicarFiltros();
 
     }
     catch(error){
@@ -260,6 +289,7 @@ async function cargarCorrectivos(){
 
 function mostrarCorrectivos(lista){
 
+    listaFiltradaActual = lista; // Guardamos la lista actual para el PDF
     const contenedor =
         document.getElementById("correctivos");
 
@@ -332,30 +362,76 @@ function aplicarFiltros(){
     const pieza =
         document.getElementById("filtroPieza")
         .value
-        .toLowerCase();
+        .toLowerCase()
+        .trim();
 
     const fecha =
         document.getElementById("filtroFecha")
         .value
-        .toLowerCase();
+        .toLowerCase()
+        .trim();
 
     const filtrados =
-        listaCorrectivos.filter(c =>
+        listaCorrectivos.filter(c => {
+            const piezaComp = (c.piezaComponente || "").toLowerCase();
+            const fechaCorr = (c.fechaCorrectivo || "").toLowerCase();
 
-            (c.piezaComponente || "")
-                .toLowerCase()
-                .includes(pieza)
+            const coincidePieza = piezaComp.includes(pieza);
+            const coincideFecha = fechaCorr.includes(fecha); // Permite buscar por DD/MM/AAAA, MM/AAAA o AAAA
 
-            &&
-
-            (c.fechaCorrectivo || "")
-                .toLowerCase()
-                .includes(fecha)
-
-        );
+            return coincidePieza && coincideFecha;
+        });
 
     mostrarCorrectivos(filtrados);
 
+}
+
+// Función para generar y descargar el PDF con jsPDF
+function exportarPDFFiltrado() {
+    const { jsPDF } = window.jspdf;
+    const docPdf = new jsPDF();
+
+    const nombreEq = document.getElementById("nombreEquipo").innerText;
+    const marcaEq = document.getElementById("marca").innerText;
+    const modeloEq = document.getElementById("modelo").innerText;
+
+    docPdf.setFontSize(16);
+    docPdf.setTextColor(2, 136, 209);
+    docPdf.text("Historial de Mantenimiento Filtrado", 14, 20);
+
+    docPdf.setFontSize(11);
+    docPdf.setTextColor(0, 0, 0);
+    docPdf.text(`Equipo: ${nombreEq}`, 14, 30);
+    docPdf.text(`Marca: ${marcaEq} | Modelo: ${modeloEq}`, 14, 37);
+
+    let y = 48;
+
+    if (listaFiltradaActual.length === 0) {
+        docPdf.text("No hay registros para exportar con los filtros actual.", 14, y);
+    } else {
+        listaFiltradaActual.forEach((c, index) => {
+            if (y > 270) { // Salto de página automático si llega al fondo
+                docPdf.addPage();
+                y = 20;
+            }
+
+            docPdf.setFillColor(240, 244, 248);
+            docPdf.rect(14, y, 182, 36, "F");
+
+            docPdf.setFont("helvetica", "bold");
+            docPdf.text(`PIEZA: ${c.piezaComponente || "-"}`, 18, y + 7);
+            
+            docPdf.setFont("helvetica", "normal");
+            docPdf.text(`Actividad: ${c.actividad || "-"}`, 18, y + 14);
+            docPdf.text(`Proveedor: ${c.proveedor || "-"}`, 18, y + 21);
+            docPdf.text(`Marca: ${c.marca || "-"} | Modelo: ${c.modelo || "-"}`, 18, y + 28);
+            docPdf.text(`Fecha: ${c.fechaCorrectivo || "-"}`, 140, y + 28);
+
+            y += 42;
+        });
+    }
+
+    docPdf.save(`Historial_${nombreEq.replace(/\s+/g, "_")}_Filtrado.pdf`);
 }
 
 document
@@ -365,6 +441,10 @@ document
 document
 .getElementById("filtroFecha")
 .addEventListener("input", aplicarFiltros);
+
+document
+.getElementById("btnExportarPDF")
+.addEventListener("click", exportarPDFFiltrado);
 
 </script>
 
