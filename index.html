@@ -16,49 +16,56 @@ body{
     font-family: Arial, sans-serif;
     background:#f4f6f9;
     margin:0;
-    padding:20px;
+    padding:15px;
 }
 
 .card{
     background:white;
     max-width:900px;
     margin:auto;
-    padding:25px;
+    padding:20px;
     border-radius:10px;
     box-shadow:0 4px 10px rgba(0,0,0,.1);
 }
 
 h1{
     color:#0288D1;
+    font-size: 22px;
 }
 
 h2{
-    margin-top:25px;
+    margin-top:20px;
+    font-size: 18px;
 }
 
+/* MODIFICADO: Cambiado a 1 sola columna para que encaje perfecto en celulares */
 .filtros{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:10px;
-    margin-bottom:15px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 15px;
 }
 
 .filtros input{
-    padding:10px;
-    border:1px solid #ccc;
-    border-radius:6px;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    width: 100%;
+    box-sizing: border-box; /* Asegura que el padding no desborde el ancho */
+    font-size: 14px;
 }
 
 .btn-pdf {
     background-color: #0288D1;
     color: white;
     border: none;
-    padding: 10px 15px;
+    padding: 12px 15px;
     border-radius: 6px;
     cursor: pointer;
     font-weight: bold;
     width: 100%;
     margin-bottom: 20px;
+    font-size: 15px;
 }
 
 .btn-pdf:hover {
@@ -75,12 +82,14 @@ h2{
 
 .correctivo p{
     margin:5px 0;
+    font-size: 14px;
 }
 
 .contador{
     margin-bottom:15px;
     color:#555;
     font-weight:bold;
+    font-size: 14px;
 }
 
 </style>
@@ -121,7 +130,6 @@ h2{
     <h2>Historial de Correctivos</h2>
 
     <div class="filtros">
-
         <input
             type="text"
             id="filtroPieza"
@@ -131,7 +139,6 @@ h2{
             type="text"
             id="filtroFecha"
             placeholder="Buscar por fecha (ej: 2020 o 10/2020)">
-
     </div>
 
     <button class="btn-pdf" id="btnExportarPDF">Exportar Filtrados a PDF</button>
@@ -176,7 +183,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 let listaCorrectivos = [];
-let listaFiltradaActual = []; // Variable para almacenar los registros filtrados actuales
+let listaFiltradaActual = [];
 
 const params = new URLSearchParams(window.location.search);
 const nombreEquipo = params.get("equipo");
@@ -269,7 +276,6 @@ async function cargarCorrectivos(){
 
         });
 
-        // Ordenar por fecha descendente si es posible
         listaCorrectivos.sort((a, b) => {
             const fA = a.fechaCorrectivo || "";
             const fB = b.fechaCorrectivo || "";
@@ -289,7 +295,7 @@ async function cargarCorrectivos(){
 
 function mostrarCorrectivos(lista){
 
-    listaFiltradaActual = lista; // Guardamos la lista actual para el PDF
+    listaFiltradaActual = lista;
     const contenedor =
         document.getElementById("correctivos");
 
@@ -377,7 +383,7 @@ function aplicarFiltros(){
             const fechaCorr = (c.fechaCorrectivo || "").toLowerCase();
 
             const coincidePieza = piezaComp.includes(pieza);
-            const coincideFecha = fechaCorr.includes(fecha); // Permite buscar por DD/MM/AAAA, MM/AAAA o AAAA
+            const coincideFecha = fechaCorr.includes(fecha);
 
             return coincidePieza && coincideFecha;
         });
@@ -386,7 +392,6 @@ function aplicarFiltros(){
 
 }
 
-// Función para generar y descargar el PDF con jsPDF
 function exportarPDFFiltrado() {
     const { jsPDF } = window.jspdf;
     const docPdf = new jsPDF();
@@ -407,10 +412,10 @@ function exportarPDFFiltrado() {
     let y = 48;
 
     if (listaFiltradaActual.length === 0) {
-        docPdf.text("No hay registros para exportar con los filtros actual.", 14, y);
+        docPdf.text("No hay registros para exportar con los filtros actuales.", 14, y);
     } else {
-        listaFiltradaActual.forEach((c, index) => {
-            if (y > 270) { // Salto de página automático si llega al fondo
+        listaFiltradaActual.forEach((c) => {
+            if (y > 270) {
                 docPdf.addPage();
                 y = 20;
             }
